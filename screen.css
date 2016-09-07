@@ -1,0 +1,30 @@
+body {
+	padding : 0;
+	margin : 65px 0 0 80px;
+	font : 1em/1.5 'Georgia',serif;
+	background : #eee;
+	color : #444;
+}
+
+
+h1 {
+	font-weight : normal;
+	font-size : 70px;
+	margin : 0 0 65px 0;
+	padding : 0;
+	color : #000;
+	border-bottom : 1px solid #ccc;
+	width : 789px;
+	line-height : 1;
+}
+a {
+	color : #444;
+}
+
+a:hover {
+	color : #000;
+}
+p {
+	margin : 0;
+	padding : 0;
+}
