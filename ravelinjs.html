@@ -6,7 +6,6 @@
     <title>Ravelinjs Device ID Demo</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
             max-width: 600px;
             margin: 50px auto;
             padding: 20px;
@@ -18,17 +17,12 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        h1 {
-            color: #333;
-            margin-top: 0;
-        }
         .device-id {
             background-color: #f0f0f0;
             padding: 15px;
             border-radius: 4px;
             font-family: monospace;
             word-break: break-all;
-            margin-top: 20px;
         }
         .label {
             font-weight: bold;
@@ -50,9 +44,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Ravelinjs Device ID Demo</h1>
-        <div class="label">Ravelin Device ID:</div>
-        <div class="device-id" id="device-id-display">
+        <div class="device-id" id="device-id">
             <span class="loading">Loading...</span>
         </div>
     </div>
@@ -93,10 +85,10 @@
         // Get the device ID (either the existing one or newly generated)
         ravelin.core.id()
             .then(function(deviceId) {
-                document.getElementById('device-id-display').textContent = deviceId;
+                document.getElementById('device-id').textContent = deviceId;
             })
             .catch(function(error) {
-                document.getElementById('device-id-display').innerHTML = 
+                document.getElementById('device-id').innerHTML =
                     '<div class="error">Error: ' + error.message + '</div>';
             });
     </script>
