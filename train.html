@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Next Train</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e8eaf0;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      padding-top: max(16px, env(safe-area-inset-top));
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      gap: 16px;
+    }
+
+    h1 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #555;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    /* ── Timer ── */
+    #timer {
+      background: #1a1d27;
+      border-radius: 20px;
+      padding: 28px 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #timer-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #666;
+    }
+
+    #timer-countdown {
+      font-size: 5rem;
+      font-weight: 800;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      transition: color 0.3s;
+    }
+
+    #timer-countdown.state-waiting  { color: #4caf50; }
+    #timer-countdown.state-getready { color: #ffaa00; }
+    #timer-countdown.state-leave    { color: #ff4d4d; }
+    #timer-countdown.state-gone     { color: #555; font-size: 2rem; }
+
+    #timer-subtitle {
+      font-size: 0.8rem;
+      color: #777;
+      line-height: 1.4;
+    }
+
+    /* ── Train sections ── */
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #555;
+      padding: 0 4px;
+    }
+
+    .train-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .train-card {
+      background: #1a1d27;
+      border-radius: 16px;
+      padding: 18px 18px 18px 22px;
+      border-left: 4px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s;
+    }
+
+    .train-card:active { background: #22263a; }
+
+    .train-card.notified::after {
+      content: '🔔';
+      font-size: 1.1rem;
+      margin-left: 4px;
+    }
+
+    .train-card.urgent  { border-color: #ff4d4d; }
+    .train-card.soon    { border-color: #ffaa00; }
+    .train-card.relaxed { border-color: #4caf50; }
+    .train-card.gone    { border-color: #333; opacity: 0.45; }
+
+    .train-card-left { display: flex; flex-direction: column; gap: 4px; }
+
+    .train-status {
+      font-size: 1.3rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .train-card.urgent  .train-status { color: #ff4d4d; }
+    .train-card.soon    .train-status { color: #ffaa00; }
+    .train-card.relaxed .train-status { color: #4caf50; }
+    .train-card.gone    .train-status { color: #444; }
+
+    .train-platform {
+      font-size: 0.75rem;
+      color: #555;
+    }
+
+    .train-time-badge {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #e8eaf0;
+      opacity: 0.9;
+      white-space: nowrap;
+    }
+
+    .train-card.gone .train-time-badge { color: #444; }
+
+    .loading {
+      color: #444;
+      font-size: 0.85rem;
+      padding: 16px;
+      text-align: center;
+      background: #1a1d27;
+      border-radius: 16px;
+    }
+
+    .error {
+      color: #ff6b6b;
+      font-size: 0.82rem;
+      padding: 14px;
+      background: #2a1a1a;
+      border-radius: 16px;
+    }
+
+    .footer {
+      font-size: 0.7rem;
+      color: #333;
+      text-align: center;
+      margin-top: auto;
+    }
+
+    .footer span { color: #555; }
+
+    /* ── Desktop: side by side ── */
+    @media (min-width: 600px) {
+      body {
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+      }
+
+      body > * { width: 100%; max-width: 560px; }
+
+      #timer { padding: 32px; }
+
+      #timer-countdown { font-size: 6rem; }
+
+      .train-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="notif-banner" style="display:none;background:#1e1a2e;border:1px solid #5c3d8f;border-radius:14px;padding:14px 16px;font-size:0.82rem;color:#c8b8e8;display:none;align-items:center;gap:12px;">
+    <span style="flex:1">Tap a train to get a "leave now" notification on your phone.</span>
+    <button id="notif-enable" style="background:#7c4dff;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:0.8rem;font-weight:600;cursor:pointer;white-space:nowrap;">Enable</button>
+  </div>
+
+  <h1>Next Train</h1>
+
+  <div id="timer">
+    <div id="timer-label">Get ready for next outbound train</div>
+    <div id="timer-countdown" class="state-waiting">--:--</div>
+    <div id="timer-subtitle">—</div>
+  </div>
+
+  <div class="section-label">Wimbledon → Farringdon</div>
+  <div class="train-list" id="list-to-farringdon">
+    <div class="loading">Loading...</div>
+  </div>
+
+  <div class="section-label">Farringdon → Wimbledon</div>
+  <div class="train-list" id="list-to-wimbledon">
+    <div class="loading">Loading...</div>
+  </div>
+
+  <div class="footer">Updated <span id="last-updated">—</span> · refreshes every minute</div>
+
+  <script>
+    const WALK_MINS  = 9;
+    const PREP_MINS  = 2;
+    const READY_MINS = WALK_MINS + PREP_MINS; // 11
+
+    const WIMBLEDON  = '1000272';
+    const FARRINGDON = '1000080';
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function nowHHMM() { const d = new Date(); return pad(d.getHours()) + pad(d.getMinutes()); }
+    function nowDate() { const d = new Date(); return d.getFullYear().toString() + pad(d.getMonth()+1) + pad(d.getDate()); }
+    function secsUntil(iso) { return Math.round((new Date(iso) - Date.now()) / 1000); }
+    function minsUntil(iso) { return Math.round((new Date(iso) - Date.now()) / 60000); }
+    function formatTime(iso) { const d = new Date(iso); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+
+    function statusClass(mins) {
+      if (mins < WALK_MINS)       return 'gone';
+      if (mins <= WALK_MINS + 1)  return 'urgent';
+      if (mins <= WALK_MINS + 6)  return 'soon';
+      return 'relaxed';
+    }
+
+    function statusText(mins) {
+      if (mins < 0)              return 'Departed';
+      if (mins < WALK_MINS)      return 'Too late';
+      if (mins <= WALK_MINS + 1) return 'LEAVE NOW';
+      return `${mins - WALK_MINS} min${mins - WALK_MINS !== 1 ? 's' : ''} to spare`;
+    }
+
+    // ── Service Worker & Notifications ──
+    let swReg = null;
+
+    async function initSW() {
+      if (!('serviceWorker' in navigator)) return;
+      try {
+        swReg = await navigator.serviceWorker.register('./sw.js');
+        showNotifBannerIfNeeded();
+      } catch (e) {
+        console.warn('SW registration failed', e);
+      }
+    }
+
+    function showNotifBannerIfNeeded() {
+      if (!('Notification' in window)) return;
+      if (Notification.permission === 'granted') return; // already have it
+      if (Notification.permission === 'denied') return;  // user said no
+      document.getElementById('notif-banner').style.display = 'flex';
+    }
+
+    document.getElementById('notif-enable').addEventListener('click', async () => {
+      const perm = await Notification.requestPermission();
+      document.getElementById('notif-banner').style.display = 'none';
+      if (perm !== 'granted') alert('Notifications blocked. You can re-enable them in your browser settings.');
+    });
+
+    async function scheduleNotifications(depIso, destination) {
+      if (!('Notification' in window) || Notification.permission !== 'granted') {
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') return false;
+      }
+
+      const depMs       = new Date(depIso).getTime();
+      const getReadyMs  = depMs - READY_MINS * 60000;
+      const leaveMs     = depMs - WALK_MINS  * 60000;
+      const now         = Date.now();
+
+      const reg = swReg || (await navigator.serviceWorker.ready);
+      const supportsTimestamp = ('TimestampTrigger' in self);
+
+      async function scheduleOne(ms, title, body, tag) {
+        if (ms <= now) return; // already past
+        if (supportsTimestamp) {
+          await reg.showNotification(title, {
+            body,
+            tag,
+            renotify: true,
+            showTrigger: new TimestampTrigger(ms),
+          });
+        } else {
+          // Fallback: ask the service worker to use setTimeout
+          const sw = reg.active || reg.installing || reg.waiting;
+          sw.postMessage({ type: 'SCHEDULE', delay: ms - now, title, body, tag });
+        }
+      }
+
+      await scheduleOne(
+        getReadyMs,
+        `Get ready — train to ${destination}`,
+        `Departs ${formatTime(depIso)} · Leave in ${READY_MINS} mins`,
+        `getready-${depIso}`
+      );
+      await scheduleOne(
+        leaveMs,
+        `LEAVE NOW — train to ${destination}`,
+        `Departs ${formatTime(depIso)} · Start walking`,
+        `leave-${depIso}`
+      );
+
+      return true;
+    }
+
+    // ── Timer ──
+    let nextOutboundDep = null;
+
+    function updateTimer() {
+      const el       = document.getElementById('timer-countdown');
+      const subtitle = document.getElementById('timer-subtitle');
+      const label    = document.getElementById('timer-label');
+
+      if (!nextOutboundDep) {
+        el.textContent = '--:--'; el.className = 'state-gone';
+        subtitle.textContent = 'No upcoming train found'; return;
+      }
+
+      const totalSecs = secsUntil(nextOutboundDep);
+      const readySecs = totalSecs - READY_MINS * 60;
+      const leaveSecs = totalSecs - WALK_MINS  * 60;
+
+      if (totalSecs < 0) {
+        el.textContent = 'Gone'; el.className = 'state-gone';
+        subtitle.textContent = `Train was at ${formatTime(nextOutboundDep)}`;
+        label.textContent = 'Next train'; return;
+      }
+      if (leaveSecs <= 0) {
+        el.textContent = 'LEAVE NOW'; el.className = 'state-leave';
+        subtitle.textContent = `Train departs ${formatTime(nextOutboundDep)}`;
+        label.textContent = 'Leave for the station'; return;
+      }
+      if (readySecs <= 0) {
+        const mm = Math.floor(leaveSecs / 60), ss = leaveSecs % 60;
+        el.textContent = `${pad(mm)}:${pad(ss)}`; el.className = 'state-getready';
+        subtitle.textContent = `Leave in ${mm}m ${pad(ss)}s · Train at ${formatTime(nextOutboundDep)}`;
+        label.textContent = 'GET READY — leave soon'; return;
+      }
+      const mm = Math.floor(readySecs / 60), ss = readySecs % 60;
+      el.textContent = `${pad(mm)}:${pad(ss)}`; el.className = 'state-waiting';
+      const getReadyAt = new Date(new Date(nextOutboundDep) - READY_MINS * 60000);
+      subtitle.textContent = `Train at ${formatTime(nextOutboundDep)} · Get ready at ${formatTime(getReadyAt)}`;
+      label.textContent = 'Get ready for next outbound train';
+    }
+
+    // ── API ──
+    async function fetchJourneys(from, to) {
+      const url = `https://api.tfl.gov.uk/Journey/JourneyResults/${from}/to/${to}` +
+        `?time=${nowHHMM()}&timeIs=Departing&mode=national-rail` +
+        `&journeyPreference=LeastInterchange&date=${nowDate()}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`TfL API error: ${res.status}`);
+      const data = await res.json();
+      return (data.journeys || []).slice(0, 2);
+    }
+
+    function renderTrains(listId, journeys, destination) {
+      const el = document.getElementById(listId);
+      el.innerHTML = '';
+
+      if (!journeys.length) {
+        el.innerHTML = '<div class="error">No trains found.</div>'; return;
+      }
+
+      for (const journey of journeys) {
+        const leg     = journey.legs[0];
+        const mins    = minsUntil(leg.departureTime);
+        const cls     = statusClass(mins);
+        const status  = statusText(mins);
+        const timeStr = formatTime(leg.departureTime);
+        const platform = leg.departurePlatform ? `Platform ${leg.departurePlatform}` : '';
+        const catchable = mins >= WALK_MINS;
+
+        const card = document.createElement('div');
+        card.className = `train-card ${cls}`;
+        card.title = catchable ? 'Tap to set notifications for this train' : '';
+        card.innerHTML = `
+          <div class="train-card-left">
+            <div class="train-status">${status}</div>
+            ${platform ? `<div class="train-platform">${platform}</div>` : ''}
+          </div>
+          <div class="train-time-badge">${timeStr}</div>
+        `;
+
+        if (catchable) {
+          card.addEventListener('click', async () => {
+            const ok = await scheduleNotifications(leg.departureTime, destination);
+            if (ok) {
+              card.classList.add('notified');
+              card.title = 'Notifications set';
+            }
+          });
+        }
+
+        el.appendChild(card);
+      }
+    }
+
+    function renderError(listId, msg) {
+      document.getElementById(listId).innerHTML = `<div class="error">${msg}</div>`;
+    }
+
+    async function refresh() {
+      const [outbound, inbound] = await Promise.allSettled([
+        fetchJourneys(WIMBLEDON, FARRINGDON),
+        fetchJourneys(FARRINGDON, WIMBLEDON),
+      ]);
+
+      if (outbound.status === 'fulfilled') {
+        renderTrains('list-to-farringdon', outbound.value, 'Farringdon');
+        const catchable = outbound.value.find(j => minsUntil(j.legs[0].departureTime) >= WALK_MINS);
+        nextOutboundDep = catchable ? catchable.legs[0].departureTime : null;
+      } else {
+        renderError('list-to-farringdon', outbound.reason.message);
+        nextOutboundDep = null;
+      }
+
+      if (inbound.status === 'fulfilled') {
+        renderTrains('list-to-wimbledon', inbound.value, 'Wimbledon');
+      } else {
+        renderError('list-to-wimbledon', inbound.reason.message);
+      }
+
+      const now = new Date();
+      document.getElementById('last-updated').textContent =
+        pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    }
+
+    initSW();
+    refresh();
+    setInterval(refresh, 60_000);
+    setInterval(updateTimer, 1000);
+  </script>
+
+</body>
+</html>
