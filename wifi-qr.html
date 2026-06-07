@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WiFi QR Code Generator</title>
+<style>
+  :root {
+    --bg: #f4f4f2;
+    --card: #ffffff;
+    --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.22);
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --accent: #534ab7;
+    --accent-hover: #3c3489;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    line-height: 1.6;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 500;
+    margin: 0 0 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sub {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 1.75rem;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .field { margin-bottom: 1.25rem; }
+  input, select {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    font-size: 15px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(83,74,183,0.15);
+  }
+  .pw-wrap { position: relative; }
+  .pw-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 8px;
+    height: auto;
+    width: auto;
+  }
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+  }
+  .checkbox-row input {
+    width: auto;
+    height: auto;
+    margin: 0;
+  }
+  .checkbox-row label {
+    margin: 0;
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  button.primary {
+    width: 100%;
+    height: 46px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+  }
+  button.primary:hover { background: var(--accent-hover); }
+  button.primary:active { transform: scale(0.99); }
+  button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .error {
+    color: #a32d2d;
+    font-size: 13px;
+    margin: 0 0 1rem;
+    min-height: 0;
+  }
+  /* Result view */
+  .result { text-align: center; }
+  .qr-box {
+    display: inline-block;
+    background: #fff;
+    padding: 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin: 0.5rem 0 1.5rem;
+  }
+  .qr-box canvas, .qr-box img { display: block; }
+  .net-name {
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0 0 0.25rem;
+    word-break: break-word;
+  }
+  .net-hint {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 1.5rem;
+  }
+  .reset-link {
+    display: inline-block;
+    background: none;
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+  .reset-link:hover { background: var(--bg); }
+  .hidden { display: none; }
+  .footnote {
+    color: var(--muted);
+    font-size: 12px;
+    margin: 1.5rem 0 0;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <!-- FORM VIEW -->
+    <div id="formView">
+      <h1>WiFi QR Code</h1>
+      <p class="sub">Generate a scannable code so guests can join your network instantly.</p>
+
+      <div class="field">
+        <label for="ssid">Network name (SSID)</label>
+        <input id="ssid" type="text" placeholder="e.g. HomeNetwork" autocomplete="off" autocapitalize="off">
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="pw-wrap">
+          <input id="password" type="password" placeholder="Network password" autocomplete="off">
+          <button type="button" class="pw-toggle" id="pwToggle">Show</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="encryption">Security</label>
+        <select id="encryption">
+          <option value="WPA">WPA / WPA2 / WPA3</option>
+          <option value="WEP">WEP</option>
+          <option value="nopass">No password (open)</option>
+        </select>
+      </div>
+
+      <div class="checkbox-row">
+        <input id="hidden" type="checkbox">
+        <label for="hidden">This is a hidden network</label>
+      </div>
+
+      <p class="error" id="errorMsg"></p>
+
+      <button class="primary" id="generateBtn">Generate QR code</button>
+    </div>
+
+    <!-- RESULT VIEW -->
+    <div id="resultView" class="result hidden">
+      <p class="net-name" id="resultName"></p>
+      <p class="net-hint">Scan with a phone camera to connect</p>
+      <div class="qr-box" id="qrBox"></div>
+      <br>
+      <button class="reset-link" id="resetBtn">↺ Create another</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    var formView = document.getElementById('formView');
+    var resultView = document.getElementById('resultView');
+    var ssidEl = document.getElementById('ssid');
+    var passwordEl = document.getElementById('password');
+    var encryptionEl = document.getElementById('encryption');
+    var hiddenEl = document.getElementById('hidden');
+    var errorMsg = document.getElementById('errorMsg');
+    var pwField = passwordEl.parentElement.parentElement;
+
+    // Escape special chars per the WIFI: URI scheme
+    function esc(str) {
+      return String(str).replace(/([\\;,:"])/g, '\\$1');
+    }
+
+    // Hide password field when "open" network selected
+    encryptionEl.addEventListener('change', function () {
+      pwField.style.display = (encryptionEl.value === 'nopass') ? 'none' : '';
+    });
+
+    // Show / hide password
+    document.getElementById('pwToggle').addEventListener('click', function () {
+      if (passwordEl.type === 'password') {
+        passwordEl.type = 'text';
+        this.textContent = 'Hide';
+      } else {
+        passwordEl.type = 'password';
+        this.textContent = 'Show';
+      }
+    });
+
+    document.getElementById('generateBtn').addEventListener('click', function () {
+      errorMsg.textContent = '';
+      var ssid = ssidEl.value.trim();
+      var pass = passwordEl.value;
+      var enc = encryptionEl.value;
+      var hidden = hiddenEl.checked;
+
+      if (!ssid) {
+        errorMsg.textContent = 'Please enter a network name.';
+        return;
+      }
+      if (enc !== 'nopass' && !pass) {
+        errorMsg.textContent = 'Please enter the network password (or choose "No password").';
+        return;
+      }
+
+      // Build the WIFI URI
+      var payload = 'WIFI:T:' + (enc === 'nopass' ? 'nopass' : enc) +
+                    ';S:' + esc(ssid) + ';';
+      if (enc !== 'nopass') payload += 'P:' + esc(pass) + ';';
+      if (hidden) payload += 'H:true;';
+      payload += ';';
+
+      var qrBox = document.getElementById('qrBox');
+      qrBox.innerHTML = '';
+      new QRCode(qrBox, {
+        text: payload,
+        width: 240,
+        height: 240,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+
+      document.getElementById('resultName').textContent = ssid;
+      formView.classList.add('hidden');
+      resultView.classList.remove('hidden');
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', function () {
+      ssidEl.value = '';
+      passwordEl.value = '';
+      passwordEl.type = 'password';
+      document.getElementById('pwToggle').textContent = 'Show';
+      encryptionEl.value = 'WPA';
+      pwField.style.display = '';
+      hiddenEl.checked = false;
+      errorMsg.textContent = '';
+      document.getElementById('qrBox').innerHTML = '';
+      resultView.classList.add('hidden');
+      formView.classList.remove('hidden');
+      ssidEl.focus();
+    });
+  </script>
+</body>
+</html>
