@@ -141,10 +141,24 @@
   }
   .qr-box canvas, .qr-box img { display: block; }
   .net-name {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
     font-size: 18px;
     font-weight: 500;
+    margin: 0 0 0.35rem;
+    word-break: break-all;
+  }
+  .net-pass {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
     margin: 0 0 0.25rem;
-    word-break: break-word;
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    word-break: break-all;
+    white-space: pre-wrap;
   }
   .net-hint {
     color: var(--muted);
@@ -216,6 +230,7 @@
     <!-- RESULT VIEW -->
     <div id="resultView" class="result hidden">
       <p class="net-name" id="resultName"></p>
+      <p class="net-pass" id="resultPass"></p>
       <p class="net-hint">Scan with a phone camera to connect</p>
       <div class="qr-box" id="qrBox"></div>
       <br>
@@ -288,6 +303,9 @@
       });
 
       document.getElementById('resultName').textContent = ssid;
+      var resultPass = document.getElementById('resultPass');
+      resultPass.textContent = pass;
+      resultPass.classList.toggle('hidden', enc === 'nopass');
       formView.classList.add('hidden');
       resultView.classList.remove('hidden');
     });
@@ -302,6 +320,7 @@
       hiddenEl.checked = false;
       errorMsg.textContent = '';
       document.getElementById('qrBox').innerHTML = '';
+      document.getElementById('resultPass').textContent = '';
       resultView.classList.add('hidden');
       formView.classList.remove('hidden');
       ssidEl.focus();
