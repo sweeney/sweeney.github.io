@@ -186,6 +186,52 @@
     margin: 1.5rem 0 0;
     text-align: center;
   }
+  /* Print: scale the result block up a touch, drop the chrome */
+  @media print {
+    @page { margin: 12mm; }
+    html, body { height: 100%; }
+    body {
+      background: #fff;
+      /* keep the flex centring from screen so the card sits mid-page */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100%;
+      padding: 0;
+      overflow: hidden;
+    }
+    .card {
+      border: 1px solid rgba(0,0,0,0.28);
+      border-radius: var(--radius);
+      box-shadow: none;
+      padding: 2rem;
+      width: 420px;
+      max-width: 100%;
+      margin: 0 auto;
+    }
+    #formView { display: none; }
+    .net-name { font-size: 22px; margin-bottom: 0.4rem; }
+    .net-pass {
+      font-size: 22px;
+      padding: 10px 14px;
+      border-color: rgba(0,0,0,0.28);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .net-hint { font-size: 16px; margin-bottom: 1.5rem; }
+    .qr-box {
+      border-color: rgba(0,0,0,0.28);
+      margin: 0.5rem 0 0;
+    }
+    .qr-box canvas, .qr-box img {
+      width: 300px !important;
+      height: 300px !important;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .reset-link, .footnote { display: none !important; }
+    .result br { display: none; }
+  }
 </style>
 </head>
 <body>
